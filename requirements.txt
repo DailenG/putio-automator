@@ -1,6 +1,7 @@
 appdirs
-Flask
-Flask-Script
+click
+click-log
 putio.py
 pyinotify
 python-dotenv
+pyyaml
