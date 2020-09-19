@@ -47,11 +47,11 @@ def init(site=False):
 
     config_path = os.path.join(base_dir, 'config.py')
 
-    incomplete = os.path.realpath(prompt('Incomplete directory', 'incomplete'))
-    downloads = os.path.realpath(prompt('Downloads directory', 'downloads'))
-    torrents = os.path.realpath(prompt('Torrents directory', 'torrents'))
+    incomplete = os.path.realpath(click.prompt('Incomplete directory', 'incomplete'))
+    downloads = os.path.realpath(click.prompt('Downloads directory', 'downloads'))
+    torrents = os.path.realpath(click.prompt('Torrents directory', 'torrents'))
 
-    putio_token = prompt('OAuth Token')
+    putio_token = click.prompt('OAuth Token')
 
     config_dist = find_config_dist()
     with open(config_dist, 'r') as source:

@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 import click
 import os
 import putiopy
-import pyinotify
 import subprocess
 
+from fswatch import Monitor
 from putio_automator.cli import cli
 from putio_automator.db import with_db
 
@@ -25,7 +25,8 @@ def add(ctx, parent_id=None):
     if parent_id == None:
         parent_id = ctx.obj['ROOT']
     folder = ctx.obj['TORRENTS']
-    files = list(f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f)))
+    files = os.listdir(folder)
+    files = list(f for f in files if os.path.isfile(os.path.join(folder, f)))
 
     if len(files):
         def func(connection):
@@ -79,22 +80,15 @@ def watch(ctx, parent_id=None, mount=False):
 
     ctx.invoke(add, parent_id=parent_id)
 
-    class EventHandler(pyinotify.ProcessEvent):
-        "Event handler for responding to a new or updated torrent file"
-        def process_IN_CLOSE_WRITE(self, event):
-            "Do the above"
-            logger.debug('adding torrent, received event: %s' % event)
-            transfer = ctx.obj['CLIENT'].Transfer.add_torrent(event.pathname, parent_id=parent_id)
-            os.unlink(event.pathname)
-            logger.info('added transfer: %s' % transfer)
+    monitor = Monitor()
+    monitor.add_path(ctx.obj['TORRENTS'])
 
-    watch_manager = pyinotify.WatchManager()
-    mask = pyinotify.IN_CLOSE_WRITE
+    def callback(path, evt_time, flags, flags_num, event_num):
+        torrent_path = path.decode()
+        logger.debug('adding torrent, received event for: %s' % torrent_path)
+        transfer = ctx.obj['CLIENT'].Transfer.add_torrent(path.decode(), parent_id=parent_id)
+        os.unlink(torrent_path)
+        logger.info('added transfer: %s' % transfer)
 
-    handler = EventHandler()
-    notifier = pyinotify.Notifier(watch_manager, handler)
-
-    wdd = watch_manager.add_watch(ctx.obj['TORRENTS'], mask, rec=True)
-    logger.debug('added watch: %s' % wdd)
-
-    notifier.loop()
+    monitor.set_callback(callback)
+    monitor.start()
